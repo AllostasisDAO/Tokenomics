@@ -9,7 +9,6 @@ import {StockSlipsAllo} from "../src/ssAlloToken.sol";
 import {PlatformsAllocator} from "../src/PlatformsAllocator.sol";
 
 contract DeployContracts is Script {
-
     function run() external returns (TokenomicsManager, ALLOToken, TokenAllocator) {
         vm.startBroadcast();
 
@@ -27,7 +26,8 @@ contract DeployContracts is Script {
             new StockSlipsAllo(address(tokenomicsManager), address(tokenAllocator), payable(address(alloToken)));
 
         // Deploy PlatformAllocator
-        PlatformsAllocator platformsAllocator = new TokenAllocator(address(tokenomicsManager), payable(address(alloToken)));
+        PlatformsAllocator platformsAllocator =
+            new TokenAllocator(address(tokenomicsManager), payable(address(alloToken)));
 
         vm.stopBroadcast();
         return (tokenomicsManager, alloToken, tokenAllocator, ssAlloToken, platformsAllocator);

@@ -10,13 +10,9 @@ import "@openzeppelin/contracts/access/manager/AccessManaged.sol";
  * @author Centeria Team
  */
 contract ALLOToken is ERC20, ERC20Pausable, AccessManaged {
+    uint256 private constant MAX_SUPPLY = 10_000_000_000 * 10 ** 18;
 
-    uint256 private constant MAX_SUPPLY = 10_000_000_000 * 10**18;
-
-    constructor(address initialAuthority)
-        ERC20("ALLOToken", "ALLO")
-        AccessManaged(initialAuthority)
-    {}
+    constructor(address initialAuthority) ERC20("ALLOToken", "ALLO") AccessManaged(initialAuthority) {}
 
     function pause() public restricted {
         _pause();
@@ -33,9 +29,7 @@ contract ALLOToken is ERC20, ERC20Pausable, AccessManaged {
 
     // The following functions are overrides required by Solidity.
 
-    function _update(address from, address to, uint256 value)
-        internal override(ERC20, ERC20Pausable)
-    {
+    function _update(address from, address to, uint256 value) internal override(ERC20, ERC20Pausable) {
         super._update(from, to, value);
     }
 }

@@ -17,34 +17,34 @@ interface IERC20 {
 }
 
 contract TokenAllocator is Pausable, AccessManaged, ReentrancyGuard {
-    
     int8 public lastMintedStage;
     int8 public currentStage;
     IERC20 public Allo;
 
-    address public contentAddress;   //Content platform's wallet/smartContrcat adderss
-    address public devInfraAddress;  //Development of infrastructure's wallet/smartContrcat adderss
-    address public treasuryAddress;  //Treasury's wallet address
+    address public contentAddress; //Content platform's wallet/smartContrcat adderss
+    address public devInfraAddress; //Development of infrastructure's wallet/smartContrcat adderss
+    address public treasuryAddress; //Treasury's wallet address
 
     // Constant variables for allocation amounts
-    uint256 private constant CONTENT_INFRADEV_ALLOCATED_STAGE_0=          12500000000000000000000000;
-    uint256 private constant CONTENT_INFRADEV_ALLOCATED_STAGE_1=          17500000000000000000000000;
-    uint256 private constant CONTENT_INFRADEV_ALLOCATED_STAGE_2=          30000000000000000000000000;
-    uint256 private constant CONTENT_INFRADEV_ALLOCATED_STAGE_3=          40000000000000000000000000;
-    uint256 private constant CONTENT_INFRADEV_ALLOCATED_STAGE_4_5=        50000000000000000000000000;
-    uint256 private constant CONTENT_INFRADEV_ALLOCATED_STAGE_OTHER=      60000000000000000000000000;
-    uint256 private constant TREASURY_ALLOCATION_FIRST_PART=             140000000000000000000000000;
-    uint256 private constant TREASURY_ALLOCATION_SECOND_PART=            150000000000000000000000000;
+    uint256 private constant CONTENT_INFRADEV_ALLOCATED_STAGE_0 = 12500000000000000000000000;
+    uint256 private constant CONTENT_INFRADEV_ALLOCATED_STAGE_1 = 17500000000000000000000000;
+    uint256 private constant CONTENT_INFRADEV_ALLOCATED_STAGE_2 = 30000000000000000000000000;
+    uint256 private constant CONTENT_INFRADEV_ALLOCATED_STAGE_3 = 40000000000000000000000000;
+    uint256 private constant CONTENT_INFRADEV_ALLOCATED_STAGE_4_5 = 50000000000000000000000000;
+    uint256 private constant CONTENT_INFRADEV_ALLOCATED_STAGE_OTHER = 60000000000000000000000000;
+    uint256 private constant TREASURY_ALLOCATION_FIRST_PART = 140000000000000000000000000;
+    uint256 private constant TREASURY_ALLOCATION_SECOND_PART = 150000000000000000000000000;
 
     // Mapping to check if the reward has been transferred or not
     mapping(int8 => bool) rewardCondition;
 
     enum Recipients {
-        Content,   // 0
-        DevInfra,  // 1
-        Treasury   // 2
+        Content, // 0
+        DevInfra, // 1
+        Treasury // 2
+
     }
-    
+
     // Events
     event NewStageTokensMinted(int8 stage, uint256 amount);
     event DAOStageChanged(int8 stage);
@@ -77,7 +77,7 @@ contract TokenAllocator is Pausable, AccessManaged, ReentrancyGuard {
     function unpause() public restricted {
         _unpause();
     }
-    
+
     /**
      * @dev The admin changes the current stage.
      * @param targetStage The target stage to change to.
@@ -86,13 +86,14 @@ contract TokenAllocator is Pausable, AccessManaged, ReentrancyGuard {
         require(targetStage <= 10, "Target stage exceeds maximum stage");
         require(targetStage == (currentStage + 1), "Target stage must be next stage");
         require(rewardCondition[targetStage - 1] == true, "The last stage has not been awarded!");
-        require((contentAddress  != address(0)) &&
-                (devInfraAddress != address(0)) &&
-                (treasuryAddress != address(0)), "All addresses must be set"); 
-        
+        require(
+            (contentAddress != address(0)) && (devInfraAddress != address(0)) && (treasuryAddress != address(0)),
+            "All addresses must be set"
+        );
+
         currentStage = targetStage;
         mintStageTokens();
-        
+
         emit DAOStageChanged(currentStage);
     }
 
@@ -102,17 +103,18 @@ contract TokenAllocator is Pausable, AccessManaged, ReentrancyGuard {
      * @param _devInfraAddress The address for the Development of infrastructure.
      * @param _treasuryAddress The address for the Treasury.
      */
-    function setAddress(
-            address          _contentAddress,
-            address         _devInfraAddress,
-            address         _treasuryAddress)
-            external restricted whenNotPaused   {
-        require((_contentAddress  != address(0)) &&
-                (_devInfraAddress != address(0)) &&
-                (_treasuryAddress != address(0)), "All addresses must be set"); 
-        contentAddress =  _contentAddress;
-        devInfraAddress= _devInfraAddress;
-        treasuryAddress= _treasuryAddress; 
+    function setAddress(address _contentAddress, address _devInfraAddress, address _treasuryAddress)
+        external
+        restricted
+        whenNotPaused
+    {
+        require(
+            (_contentAddress != address(0)) && (_devInfraAddress != address(0)) && (_treasuryAddress != address(0)),
+            "All addresses must be set"
+        );
+        contentAddress = _contentAddress;
+        devInfraAddress = _devInfraAddress;
+        treasuryAddress = _treasuryAddress;
     }
 
     /**
@@ -121,7 +123,7 @@ contract TokenAllocator is Pausable, AccessManaged, ReentrancyGuard {
      * @param _addr The address to set.
      */
     function setAddress(Recipients _recipients, address _addr) external restricted whenNotPaused {
-        require(_addr!= address(0), "Address cannot be zero");
+        require(_addr != address(0), "Address cannot be zero");
         if (_recipients == Recipients.Content) {
             contentAddress = _addr;
         } else if (_recipients == Recipients.DevInfra) {
@@ -136,9 +138,9 @@ contract TokenAllocator is Pausable, AccessManaged, ReentrancyGuard {
     /**
      * @dev Transfers the reward to the respective addresses for the current stage.
      */
-    function txReward() external restricted whenNotPaused nonReentrant {                          
+    function txReward() external restricted whenNotPaused nonReentrant {
         int8 stage = currentStage;
-        
+
         require(stage >= 0 && stage <= 10, "Stage must be in range");
         require(rewardCondition[stage] == false, "The reward has been transferred in this stage!");
         rewardCondition[stage] = true;
@@ -147,7 +149,7 @@ contract TokenAllocator is Pausable, AccessManaged, ReentrancyGuard {
         uint256 contentReward;
         if (stage == 0) {
             contentReward = CONTENT_INFRADEV_ALLOCATED_STAGE_0;
-        } else if (stage == 1) { 
+        } else if (stage == 1) {
             contentReward = CONTENT_INFRADEV_ALLOCATED_STAGE_1;
         } else if (stage == 2) {
             contentReward = CONTENT_INFRADEV_ALLOCATED_STAGE_2;
@@ -158,14 +160,14 @@ contract TokenAllocator is Pausable, AccessManaged, ReentrancyGuard {
         } else {
             contentReward = CONTENT_INFRADEV_ALLOCATED_STAGE_OTHER;
         }
-        Allo.transfer(contentAddress,contentReward);
+        Allo.transfer(contentAddress, contentReward);
         emit ContentRewarded(contentAddress, stage, contentReward);
 
         // Development of Allostasis infrastructure reward
         uint256 devInfraReward;
         if (stage == 0) {
             devInfraReward = CONTENT_INFRADEV_ALLOCATED_STAGE_0;
-        } else if (stage == 1) { 
+        } else if (stage == 1) {
             devInfraReward = CONTENT_INFRADEV_ALLOCATED_STAGE_1;
         } else if (stage == 2) {
             devInfraReward = CONTENT_INFRADEV_ALLOCATED_STAGE_2;
@@ -180,7 +182,9 @@ contract TokenAllocator is Pausable, AccessManaged, ReentrancyGuard {
         emit ContentRewarded(devInfraAddress, stage, devInfraReward);
 
         // Treasury reward
-        uint256 treasuryReward = (stage >= 0 && stage <= 3) ? 0 : (stage >= 4 && stage <= 8) ? TREASURY_ALLOCATION_FIRST_PART : TREASURY_ALLOCATION_SECOND_PART;
+        uint256 treasuryReward = (stage >= 0 && stage <= 3)
+            ? 0
+            : (stage >= 4 && stage <= 8) ? TREASURY_ALLOCATION_FIRST_PART : TREASURY_ALLOCATION_SECOND_PART;
         Allo.transfer(treasuryAddress, treasuryReward);
         emit TreasuryRewarded(treasuryAddress, stage, treasuryReward);
     }
@@ -194,7 +198,7 @@ contract TokenAllocator is Pausable, AccessManaged, ReentrancyGuard {
         require(lastMintedStage < stage, "Tokens for the current stage have already been minted");
         if (stage == 0) {
             mintAmount = 2 * CONTENT_INFRADEV_ALLOCATED_STAGE_0;
-        } else if (stage == 1) { 
+        } else if (stage == 1) {
             mintAmount = 2 * CONTENT_INFRADEV_ALLOCATED_STAGE_1;
         } else if (stage == 2) {
             mintAmount = 2 * CONTENT_INFRADEV_ALLOCATED_STAGE_2;
@@ -205,8 +209,10 @@ contract TokenAllocator is Pausable, AccessManaged, ReentrancyGuard {
         } else {
             mintAmount = 2 * CONTENT_INFRADEV_ALLOCATED_STAGE_OTHER;
         }
-        
-        uint256 mintForTreasury = (stage >= 0 && stage <= 3) ? 0 : (stage >= 4 && stage <= 8) ? TREASURY_ALLOCATION_FIRST_PART : TREASURY_ALLOCATION_SECOND_PART;
+
+        uint256 mintForTreasury = (stage >= 0 && stage <= 3)
+            ? 0
+            : (stage >= 4 && stage <= 8) ? TREASURY_ALLOCATION_FIRST_PART : TREASURY_ALLOCATION_SECOND_PART;
         Allo.mint(address(this), mintAmount + mintForTreasury);
         lastMintedStage += 1;
 

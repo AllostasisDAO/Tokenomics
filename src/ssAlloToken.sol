@@ -14,7 +14,6 @@ import "./ITokenAllocator.sol";
  * @dev ERC721 token representing staked Allo tokens with role-based allocation.
  */
 contract StockSlipsAllo is ERC721, ERC721Pausable, AccessManaged {
-    
     uint256 private _nextTokenId;
     ITokenAllocator public tokenAllocator;
     IERC20 public Allo;
@@ -37,8 +36,8 @@ contract StockSlipsAllo is ERC721, ERC721Pausable, AccessManaged {
      */
     event Burn(address stakerAddr, uint256 tokenId, uint256 unlockAmount);
 
-    mapping(uint256 => NFTsData) public nftsData; 
-    mapping(bytes32 => RecipientsAssets) public recipientsAssets; 
+    mapping(uint256 => NFTsData) public nftsData;
+    mapping(bytes32 => RecipientsAssets) public recipientsAssets;
 
     struct NFTsData {
         address stakerAddr;
@@ -55,12 +54,12 @@ contract StockSlipsAllo is ERC721, ERC721Pausable, AccessManaged {
      * @dev Enumeration representing different roles eligible for staking and receiving NFTs.
      */
     enum Recipients {
-        user,        
-        creators,    
+        user,
+        creators,
         contentNodes,
-        infraNodes,  
-        devTeam,     
-        stakers      
+        infraNodes,
+        devTeam,
+        stakers
     }
 
     /**
@@ -69,9 +68,9 @@ contract StockSlipsAllo is ERC721, ERC721Pausable, AccessManaged {
      * @param tokenAllocatorAddr The address of the token allocator contract.
      * @param AlloAddr The address of the Allo ERC20 token contract.
      */
-    constructor(address initialAuthority, address tokenAllocatorAddr, address AlloAddr) 
-        ERC721("StockSlipsAllo", "ssAllo") 
-        AccessManaged(initialAuthority) 
+    constructor(address initialAuthority, address tokenAllocatorAddr, address AlloAddr)
+        ERC721("StockSlipsAllo", "ssAllo")
+        AccessManaged(initialAuthority)
     {
         Allo = IERC20(AlloAddr);
         tokenAllocator = ITokenAllocator(tokenAllocatorAddr);
@@ -88,9 +87,9 @@ contract StockSlipsAllo is ERC721, ERC721Pausable, AccessManaged {
         require(Allo.balanceOf(msg.sender) >= _amount, "Insufficient balance!");
         require(Allo.allowance(msg.sender, address(this)) >= _amount, "Insufficient allowance!");
         require(_amount >= 1000_000000000000000000, "At least 1000 Allo token should be staked!");
-        
+
         Allo.transferFrom(msg.sender, address(this), _amount);
-        Recipients role = (msg.sender == _stakerAddr) ? Recipients.stakers : _role; 
+        Recipients role = (msg.sender == _stakerAddr) ? Recipients.stakers : _role;
         bytes32 _signiture = dataSigning(tokenAllocator.currentStage(), role, _stakerAddr);
 
         RecipientsAssets storage staker = recipientsAssets[_signiture];
@@ -101,7 +100,7 @@ contract StockSlipsAllo is ERC721, ERC721Pausable, AccessManaged {
             uint256 tokenId = _nextTokenId++;
             _safeMint(_stakerAddr, tokenId);
             recipientsAssets[_signiture] = RecipientsAssets(tokenId, _amount);
-            
+
             nftsData[tokenId] = NFTsData(_stakerAddr, role, tokenAllocator.currentStage());
             emit Mint(_stakerAddr, tokenId, role, tokenAllocator.currentStage(), _amount);
         }
@@ -113,7 +112,7 @@ contract StockSlipsAllo is ERC721, ERC721Pausable, AccessManaged {
      * @param _tokenId The ID of the token to be burned.
      */
     function burnSsAllo(uint256 _tokenId) external {
-        require(_exists(_tokenId),"NFT ID does not exist!");
+        require(_exists(_tokenId), "NFT ID does not exist!");
         int8 currentStage = tokenAllocator.currentStage();
         require(ownerOf(_tokenId) == msg.sender, "Only the owner of the token can burn it");
         NFTsData memory userData2 = nftsData[_tokenId];
@@ -147,7 +146,7 @@ contract StockSlipsAllo is ERC721, ERC721Pausable, AccessManaged {
     /**
      * @dev Generates a unique signature based on stage, role, and staker address.
      * @param _stage The current stage of the allocation.
-     * @param _role The role associated with the NFT.   
+     * @param _role The role associated with the NFT.
      * @param _stakerAddr The address of the staker.
      * @return A bytes32 signature.
      */
@@ -163,7 +162,7 @@ contract StockSlipsAllo is ERC721, ERC721Pausable, AccessManaged {
     function getAssetsData(address _stakerAddr) public view returns (uint256, uint256[][] memory) {
         uint256 numNFTs = balanceOf(_stakerAddr);
         uint256[][] memory assetsData = new uint256[][](numNFTs);
-        
+
         uint256 j;
         for (uint256 i; i <= _nextTokenId; i++) {
             // Check if token exists by verifying if the owner is a non-zero address.
@@ -172,22 +171,23 @@ contract StockSlipsAllo is ERC721, ERC721Pausable, AccessManaged {
                 assetsData[j][0] = i;
                 assetsData[j][1] = uint256(uint8(nftsData[i].stage));
                 assetsData[j][2] = uint256(uint8(nftsData[i].role));
-                bytes32 signature = keccak256(abi.encodePacked(nftsData[i].stage, nftsData[i].role, nftsData[i].stakerAddr));
+                bytes32 signature =
+                    keccak256(abi.encodePacked(nftsData[i].stage, nftsData[i].role, nftsData[i].stakerAddr));
                 assetsData[j][3] = recipientsAssets[signature].lockedAmount;
                 j++;
-            } 
+            }
         }
         return (numNFTs, assetsData);
     }
 
     /**
-    * @notice Checks if a token with the given ID exists.
-    * @dev This function determines the existence of a token by checking if it has an owner.
-    * @param tokenId The unique identifier of the token to check.
-    * @return bool Returns true if the token exists, i.e., it has a non-zero address as its owner, otherwise false.
-    */
+     * @notice Checks if a token with the given ID exists.
+     * @dev This function determines the existence of a token by checking if it has an owner.
+     * @param tokenId The unique identifier of the token to check.
+     * @return bool Returns true if the token exists, i.e., it has a non-zero address as its owner, otherwise false.
+     */
     function _exists(uint256 tokenId) internal view returns (bool) {
-    return _ownerOf(tokenId) != address(0);
+        return _ownerOf(tokenId) != address(0);
     }
 
     /**
@@ -198,7 +198,11 @@ contract StockSlipsAllo is ERC721, ERC721Pausable, AccessManaged {
      * @param auth Authorization data for the transfer.
      * @return The address that received the token.
      */
-    function _update(address to, uint256 tokenId, address auth) internal override(ERC721, ERC721Pausable) returns (address) {
+    function _update(address to, uint256 tokenId, address auth)
+        internal
+        override(ERC721, ERC721Pausable)
+        returns (address)
+    {
         return super._update(to, tokenId, auth);
     }
 }

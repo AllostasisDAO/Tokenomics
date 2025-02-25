@@ -9,6 +9,5 @@ import "@openzeppelin/contracts/access/manager/AccessManager.sol";
  * @notice This contract manages all the access in the Allostasis tokenomic
  */
 contract TokenomicsManager is AccessManager {
-    
     constructor(address initialAdmin) AccessManager(initialAdmin) {}
 }

@@ -6,8 +6,7 @@ pragma solidity ^0.8.20;
  * @dev Interface for the TokenAllocator smart contract responsible for allocating and distributing Allo tokens.
  * Implements the Pausable, AccessManaged, and ReentrancyGuard interfaces.
  */
-interface ITokenAllocator  {
-
+interface ITokenAllocator {
     /// @notice Returns the last stage for which tokens were minted.
     /// @return The last minted stage as an int8.
     function lastMintedStage() external view returns (int8);

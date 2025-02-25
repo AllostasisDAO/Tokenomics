@@ -12,11 +12,7 @@ import "@openzeppelin/contracts/access/manager/AccessManaged.sol";
 interface IERC20 {
     function transfer(address to, uint256 value) external returns (bool);
     function balanceOf(address account) external view returns (uint256);
-    function transferFrom(
-        address from,
-        address to,
-        uint256 value
-    ) external returns (bool);
+    function transferFrom(address from, address to, uint256 value) external returns (bool);
     function mint(address to, uint256 amount) external;
 }
 
@@ -26,8 +22,8 @@ interface IERC20 {
  * @dev This contract manages the Allostasis Platforms tokenomics.
  */
 contract PlatformsAllocator is Pausable, AccessManaged {
-    
-    /** @dev Structure containing information about each platform
+    /**
+     * @dev Structure containing information about each platform
      */
     struct PlatformInfo {
         string name; // Name of the platform
@@ -59,23 +55,15 @@ contract PlatformsAllocator is Pausable, AccessManaged {
 
     // Events
     event NewPlatformAdded(string name, address contractAddress, address admin);
-    event PlatformsTokensMinted(
-        string name,
-        address contractAddress,
-        uint256 amount
-    );
-    event PlatformsStageChanged(
-        string name,
-        address contractAddress,
-        uint256 currentStage
-    );
+    event PlatformsTokensMinted(string name, address contractAddress, uint256 amount);
+    event PlatformsStageChanged(string name, address contractAddress, uint256 currentStage);
 
     // Constants
     uint256 constant TOTAL_PLATFORM_ALLOCATION = 8_000_000_000; // Total ALLO tokens allocated to platforms
-    uint256 private numberOfPlatforms;  // Total number of registered platforms
+    uint256 private numberOfPlatforms; // Total number of registered platforms
     uint256 private decimal = 10 ** 18; // Decimal precision
     uint256 private percentageDecimal = 10 ** 11; // prcentage decimal precision (e.g. if all percentages are in decimals, we use decimal / percentageDecimal to convert between decimals
-    uint256 private halving;            // Counter for halving
+    uint256 private halving; // Counter for halving
 
     // Mapping to store platform information
     mapping(uint256 => PlatformInfo) public platformsInfo;
@@ -87,10 +75,7 @@ contract PlatformsAllocator is Pausable, AccessManaged {
     IERC20 public ALLO;
 
     modifier nonZeroAddress(address _admin, address _contractAddress) {
-        require(
-            _admin != address(0) && _contractAddress != address(0),
-            "Non Zero Address."
-        );
+        require(_admin != address(0) && _contractAddress != address(0), "Non Zero Address.");
         _;
     }
 
@@ -99,10 +84,7 @@ contract PlatformsAllocator is Pausable, AccessManaged {
      * @param initialAuthority Address of the initial authority for access control.
      * @param AlloAdr Address of the ALLO token contract.
      */
-    constructor(
-        address initialAuthority,
-        address payable AlloAdr
-    ) AccessManaged(initialAuthority) {
+    constructor(address initialAuthority, address payable AlloAdr) AccessManaged(initialAuthority) {
         ALLO = IERC20(AlloAdr);
         platformFactoryState = State.Allostasis;
     }
@@ -113,30 +95,21 @@ contract PlatformsAllocator is Pausable, AccessManaged {
      * tokens for its platform concerning the platform stage and stage percentage.
      * @param platformId Identifier of the platform.
      */
-    function mintPlatformsTokens(
-        uint256 platformId
-    ) external payable restricted whenNotPaused {
-        require(
-            platformsInfo[platformId].admin != address(0),
-            "Invalid Platform Id"
-        );
+    function mintPlatformsTokens(uint256 platformId) external payable restricted whenNotPaused {
+        require(platformsInfo[platformId].admin != address(0), "Invalid Platform Id");
         require(platformsInfo[platformId].platformActivated, "Not Activated.");
         require(!platformsInfo[platformId].stageActivated, "Already Minted.");
 
         PlatformInfo storage platform = platformsInfo[platformId];
         uint256[] memory _releasePercentages = platform.releasePercentages;
-        uint256 releaseAmount = (_releasePercentages[platform.currentStage-1] * platform.totalFund);
+        uint256 releaseAmount = (_releasePercentages[platform.currentStage - 1] * platform.totalFund);
         platform.stageActivated = true;
-        platform.totalAllocated += releaseAmount/100_00000;
+        platform.totalAllocated += releaseAmount / 100_00000;
 
         _checkForEnd(platformId);
         ALLO.mint(platform.contractAddress, releaseAmount * percentageDecimal);
 
-        emit PlatformsTokensMinted(
-            platform.name,
-            platform.contractAddress,
-            releaseAmount * percentageDecimal
-        );
+        emit PlatformsTokensMinted(platform.name, platform.contractAddress, releaseAmount * percentageDecimal);
     }
 
     /**
@@ -153,9 +126,8 @@ contract PlatformsAllocator is Pausable, AccessManaged {
         uint256[] memory _releasePercentages
     ) external restricted nonZeroAddress(admin, contractAddress) {
         uint256 sumOfPercentage;
-        uint256 numberOfStages= _releasePercentages.length;
-        for (uint256 i; i < numberOfStages; i++) 
-        {
+        uint256 numberOfStages = _releasePercentages.length;
+        for (uint256 i; i < numberOfStages; i++) {
             sumOfPercentage += _releasePercentages[i];
         }
 
@@ -164,13 +136,7 @@ contract PlatformsAllocator is Pausable, AccessManaged {
         if (numberOfPlatforms == 6) {
             platformFactoryState = State.Others;
         }
-        _registerPlatform(
-            name,
-            contractAddress,
-            admin,
-            numberOfStages,
-            _releasePercentages
-        );
+        _registerPlatform(name, contractAddress, admin, numberOfStages, _releasePercentages);
 
         emit NewPlatformAdded(name, contractAddress, admin);
     }
@@ -180,28 +146,15 @@ contract PlatformsAllocator is Pausable, AccessManaged {
      * @param platformId Identifier of the platform.
      */
     function stageUpPlatform(uint256 platformId) external whenNotPaused {
-        require(
-            platformsInfo[platformId].admin != address(0),
-            "Invalid Platform Id."
-        );
-        require(
-            platformsInfo[platformId].admin == msg.sender,
-            "The admin of the platform can staging up."
-        );
+        require(platformsInfo[platformId].admin != address(0), "Invalid Platform Id.");
+        require(platformsInfo[platformId].admin == msg.sender, "The admin of the platform can staging up.");
         require(platformsInfo[platformId].platformActivated, "This Platofrm ID has been deacivated!");
-        require(
-            platformsInfo[platformId].stageActivated,
-            "Allocation of this stage has not been transferred!"
-        );
+        require(platformsInfo[platformId].stageActivated, "Allocation of this stage has not been transferred!");
 
         PlatformInfo storage platform = platformsInfo[platformId];
         platform.stageActivated = false;
         platform.currentStage++;
-        emit PlatformsStageChanged(
-            platform.name,
-            platform.contractAddress,
-            platform.currentStage
-        );
+        emit PlatformsStageChanged(platform.name, platform.contractAddress, platform.currentStage);
     }
 
     /**
@@ -209,9 +162,7 @@ contract PlatformsAllocator is Pausable, AccessManaged {
      * @param platformId Identifier of the platform.
      * @return platformStage Current stage of the platform.
      */
-    function getPlatformStage(
-        uint256 platformId
-    ) external view returns (uint256 platformStage) {
+    function getPlatformStage(uint256 platformId) external view returns (uint256 platformStage) {
         return (platformsInfo[platformId].currentStage);
     }
 
@@ -220,9 +171,7 @@ contract PlatformsAllocator is Pausable, AccessManaged {
      * @param platformId Identifier of the platform.
      * @return paltformAdmin Admin address of the platform
      */
-    function getPlatformAdmin(
-        uint256 platformId
-    ) external view returns (address paltformAdmin) {
+    function getPlatformAdmin(uint256 platformId) external view returns (address paltformAdmin) {
         return (platformsInfo[platformId].admin);
     }
 
@@ -230,10 +179,13 @@ contract PlatformsAllocator is Pausable, AccessManaged {
      * @dev Decative a platform by allocator admin before last stage
      */
     function deactivePlatform(uint256 platformId) public restricted whenNotPaused {
-        require(platformsInfo[platformId].admin != address(0),"Invalid Platform Id");
+        require(platformsInfo[platformId].admin != address(0), "Invalid Platform Id");
         require(platformsInfo[platformId].platformActivated, "This paltform already not activated!");
-        require(platformsInfo[platformId].currentStage != platformsInfo[platformId].numberOfStages, "This is the last stage.");
-        
+        require(
+            platformsInfo[platformId].currentStage != platformsInfo[platformId].numberOfStages,
+            "This is the last stage."
+        );
+
         PlatformInfo storage platform = platformsInfo[platformId];
         platform.platformActivated = false;
         _checkDeactivation = true;
@@ -243,10 +195,13 @@ contract PlatformsAllocator is Pausable, AccessManaged {
      * @dev Acative a platform that deactivied by allocator admin before last stage
      */
     function activePlatform(uint256 platformId) public restricted whenNotPaused {
-        require(platformsInfo[platformId].admin != address(0),"Invalid Platform Id");
+        require(platformsInfo[platformId].admin != address(0), "Invalid Platform Id");
         require(!platformsInfo[platformId].platformActivated, "This paltform already activated!");
-        require(platformsInfo[platformId].currentStage != platformsInfo[platformId].numberOfStages, "This is the last stage.");
-        
+        require(
+            platformsInfo[platformId].currentStage != platformsInfo[platformId].numberOfStages,
+            "This is the last stage."
+        );
+
         PlatformInfo storage platform = platformsInfo[platformId];
         platform.platformActivated = true;
         _checkDeactivation = false;
@@ -303,8 +258,7 @@ contract PlatformsAllocator is Pausable, AccessManaged {
             if ((numberOfPlatforms - 6) % 8 == 0) {
                 halving++;
             }
-            uint256 remainAmount = (625 * TOTAL_PLATFORM_ALLOCATION) /
-                (2000 * halving);
+            uint256 remainAmount = (625 * TOTAL_PLATFORM_ALLOCATION) / (2000 * halving);
             uint256 totalFund = remainAmount / 8;
 
             // adding new platform to the list
@@ -323,7 +277,7 @@ contract PlatformsAllocator is Pausable, AccessManaged {
             );
             numberOfPlatforms++;
         } else {
-            revert ("Registration Failed!");
+            revert("Registration Failed!");
         }
     }
 
